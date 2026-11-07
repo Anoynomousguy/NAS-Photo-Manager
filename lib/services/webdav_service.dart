@@ -27,7 +27,7 @@ class WebdavService {
   WebdavService({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  static const String defaultUrl = 'https://your-nas.your-tailnet.ts.net:8443';
+  static const String defaultUrl = 'https://your-nas.your-tailnet.ts.net:8443/dav';
 
   static const String _urlKey = 'nas_photo_manager.webdav.url';
   static const String _usernameKey = 'nas_photo_manager.webdav.username';

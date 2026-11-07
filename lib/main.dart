@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'screens/help_screen.dart';
 import 'screens/local_gallery_screen.dart';
 import 'screens/remote_gallery_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/tutorial_screen.dart';
 import 'services/webdav_service.dart';
+import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,35 +34,52 @@ Future<void> _requestPhotoPermissions() async {
   }
 }
 
-class NasPhotoManagerApp extends StatelessWidget {
+class NasPhotoManagerApp extends StatefulWidget {
   const NasPhotoManagerApp({super.key, required this.webdavService});
 
   final WebdavService webdavService;
 
   @override
+  State<NasPhotoManagerApp> createState() => _NasPhotoManagerAppState();
+}
+
+class _NasPhotoManagerAppState extends State<NasPhotoManagerApp> {
+  final ThemeController _themeController = ThemeController();
+
+  @override
+  void dispose() {
+    _themeController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NAS Photo Manager',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.teal,
-        useMaterial3: true,
-        brightness: Brightness.light,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: _themeController,
+      builder: (context, themeMode, _) => MaterialApp(
+        title: 'NAS Photo Manager',
+        debugShowCheckedModeBanner: false,
+        theme: OneDriveTheme.light,
+        darkTheme: OneDriveTheme.dark,
+        themeMode: themeMode,
+        home: HomeShell(
+          webdavService: widget.webdavService,
+          themeController: _themeController,
+        ),
       ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: Colors.teal,
-        useMaterial3: true,
-        brightness: Brightness.dark,
-      ),
-      home: HomeShell(webdavService: webdavService),
     );
   }
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.webdavService});
+  const HomeShell({
+    super.key,
+    required this.webdavService,
+    required this.themeController,
+  });
 
   final WebdavService webdavService;
+  final ThemeController themeController;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -68,49 +88,76 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final GlobalKey<RemoteGalleryScreenState> _remoteKey =
       GlobalKey<RemoteGalleryScreenState>();
-  late final List<Widget> _screens;
+
+  late final List<Widget> _screens = <Widget>[
+    RemoteGalleryScreen(
+      key: _remoteKey,
+      webdavService: widget.webdavService,
+      themeController: widget.themeController,
+      onOpenSettings: () => _select(4),
+      onOpenLocalPhotos: () => _select(1),
+    ),
+    LocalGalleryScreen(
+      webdavService: widget.webdavService,
+      themeController: widget.themeController,
+      onOpenSettings: () => _select(4),
+    ),
+    TutorialScreen(
+      themeController: widget.themeController,
+      onOpenSettings: () => _select(4),
+      onOpenHelp: () => _select(3),
+    ),
+    HelpScreen(
+      webdavService: widget.webdavService,
+      themeController: widget.themeController,
+      onOpenSettings: () => _select(4),
+    ),
+    SettingsScreen(
+      webdavService: widget.webdavService,
+      onSaved: () => _remoteKey.currentState?.reload(),
+    ),
+  ];
+
   int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _screens = <Widget>[
-      RemoteGalleryScreen(key: _remoteKey, webdavService: widget.webdavService),
-      LocalGalleryScreen(webdavService: widget.webdavService),
-      SettingsScreen(
-        webdavService: widget.webdavService,
-        onSaved: () => _remoteKey.currentState?.reload(),
-      ),
-    ];
+  void _select(int index) {
+    setState(() => _currentIndex = index);
+    if (index == 0) {
+      _remoteKey.currentState?.reload();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-          if (index == 0) {
-            _remoteKey.currentState?.reload();
-          }
-        },
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: _select,
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
             icon: Icon(Icons.cloud_outlined),
-            activeIcon: Icon(Icons.cloud),
+            selectedIcon: Icon(Icons.cloud),
             label: 'NAS Photos',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.photo_library_outlined),
-            activeIcon: Icon(Icons.photo_library),
+            selectedIcon: Icon(Icons.photo_library),
             label: 'Local Photos',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            activeIcon: Icon(Icons.settings),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school),
+            label: 'Tutorial',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.help_outline),
+            selectedIcon: Icon(Icons.help),
+            label: 'Help',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
             label: 'Settings',
           ),
         ],
