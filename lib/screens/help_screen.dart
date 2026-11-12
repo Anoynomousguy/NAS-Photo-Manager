@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/auth_context.dart';
 import '../services/webdav_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -48,6 +49,42 @@ const List<_FaqEntry> _faq = <_FaqEntry>[
   ),
 ];
 
+const List<_FaqEntry> _adminFaq = <_FaqEntry>[
+  _FaqEntry(
+    'How do I manage members?',
+    'Use the web portal Administration module. This mobile app deliberately '
+        'does not expose account or quota mutations, so a phone cannot change '
+        'another person\'s access.',
+  ),
+  _FaqEntry(
+    'Why is a module missing for someone?',
+    'Modules declare a requiredRole in the manifest. Members see Files, '
+        'Photos, AI Assistant and Help; Administration is admin-only. The shell '
+        'filters the navigation bar before it builds those routes.',
+  ),
+  _FaqEntry(
+    'What should I do after a suspected session leak?',
+    'Revoke the session at the identity portal, then reopen this app. The '
+        'offline fallback is always the member role and never restores an '
+        'administrator session from cache.',
+  ),
+  _FaqEntry(
+    'Why does the NAS show offline?',
+    'The app probes DNS every 20 seconds. Tailscale can be connected while '
+        'the NAS is asleep or unreachable; restore the NAS and press Retry in '
+        'the offline banner.',
+  ),
+  _FaqEntry(
+    'Where are audit logs?',
+    'Server-side logs and user administration live in the web portal. The '
+        'mobile client only renders the current session and its permitted '
+        'modules.',
+  ),
+];
+
+List<_FaqEntry> _faqsFor(UserRole role) =>
+    role == UserRole.admin ? _adminFaq : _faq;
+
 /// FAQ accordion plus connection diagnostics that reuse the WebDAV service.
 class HelpScreen extends StatefulWidget {
   const HelpScreen({
@@ -55,11 +92,15 @@ class HelpScreen extends StatefulWidget {
     required this.webdavService,
     this.themeController,
     this.onOpenSettings,
+    this.role,
+    this.onOpenTutorial,
   });
 
   final WebdavService webdavService;
   final ThemeController? themeController;
   final VoidCallback? onOpenSettings;
+  final UserRole? role;
+  final VoidCallback? onOpenTutorial;
 
   @override
   State<HelpScreen> createState() => _HelpScreenState();
@@ -127,6 +168,9 @@ class _HelpScreenState extends State<HelpScreen> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ThemeController? themeController = widget.themeController;
+    final UserRole role =
+        widget.role ?? AuthScope.maybeOf(context)?.role ?? UserRole.user;
+    final List<_FaqEntry> faqs = _faqsFor(role);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help'),
@@ -141,9 +185,11 @@ class _HelpScreenState extends State<HelpScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: <Widget>[
+          _RoleGuideCard(role: role, onOpenTutorial: widget.onOpenTutorial),
+          const SizedBox(height: 20),
           Text('Frequently asked questions', style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
-          for (final _FaqEntry entry in _faq) ...<Widget>[
+          for (final _FaqEntry entry in faqs) ...<Widget>[
             _FaqTile(entry: entry),
             const SizedBox(height: 10),
           ],
@@ -283,6 +329,82 @@ class _HelpScreenState extends State<HelpScreen> {
                   ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleGuideCard extends StatelessWidget {
+  const _RoleGuideCard({required this.role, this.onOpenTutorial});
+
+  final UserRole role;
+  final VoidCallback? onOpenTutorial;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final OneDriveTokens tokens = OneDriveTokens.of(context);
+    final bool admin = role == UserRole.admin;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(
+                  admin ? Icons.admin_panel_settings_outlined : Icons.person_outline,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    admin ? 'Administrator guide' : 'Member guide',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    role.label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              admin
+                  ? 'You can open Administration in addition to every member '
+                        'module. Account and quota changes remain in the web '
+                        'portal; this app is intentionally read-only for admin '
+                        'data.'
+                  : 'Files, Photos, AI Assistant and Help are available to you. '
+                        'Administration is hidden by the core route guard, and '
+                        'direct attempts are blocked before the module mounts.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: tokens.secondaryText,
+              ),
+            ),
+            if (onOpenTutorial != null) ...<Widget>[
+              const SizedBox(height: 10),
+              TextButton.icon(
+                onPressed: onOpenTutorial,
+                icon: const Icon(Icons.school_outlined, size: 18),
+                label: const Text('Open the getting-started tutorial'),
+              ),
+            ],
           ],
         ),
       ),

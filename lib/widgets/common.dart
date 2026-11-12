@@ -84,15 +84,15 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 104,
-              height: 104,
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.08),
+                color: scheme.primary.withValues(alpha: 0.07),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 52, color: scheme.primary),
+              child: Icon(icon, size: 44, color: scheme.primary),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Text(
               title,
               style: theme.textTheme.titleLarge,
@@ -100,7 +100,7 @@ class EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: const BoxConstraints(maxWidth: 400),
               child: Text(
                 message,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -206,7 +206,7 @@ class RemoteThumb extends StatelessWidget {
     super.key,
     required this.imageUrl,
     required this.headers,
-    this.radius = 6,
+    this.radius = 8,
   });
 
   final String imageUrl;
@@ -257,7 +257,7 @@ class MoreAffordance<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black38,
+      color: Colors.black45,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: PopupMenuButton<T>(

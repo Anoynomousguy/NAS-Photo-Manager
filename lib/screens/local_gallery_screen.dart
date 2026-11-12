@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 
+import '../core/network_status.dart';
 import '../services/webdav_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -23,11 +24,13 @@ class LocalGalleryScreen extends StatefulWidget {
     required this.webdavService,
     this.themeController,
     this.onOpenSettings,
+    this.onBack,
   });
 
   final WebdavService webdavService;
   final ThemeController? themeController;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onBack;
 
   @override
   State<LocalGalleryScreen> createState() => _LocalGalleryScreenState();
@@ -315,6 +318,11 @@ class _LocalGalleryScreenState extends State<LocalGalleryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final NetworkStatusController? network = NetworkStatusScope.maybeOf(
+      context,
+    );
+    final bool offline = network?.isOffline == true;
+
     return Scaffold(
       appBar: _buildAppBar(),
       floatingActionButton: _uploading
@@ -325,7 +333,12 @@ class _LocalGalleryScreenState extends State<LocalGalleryScreen> {
               child: const Icon(Icons.add),
             ),
       bottomNavigationBar: _selectionActive ? _buildUploadBar() : null,
-      body: _buildGallery(),
+      body: Column(
+        children: <Widget>[
+          if (offline) _NasOfflineNotice(controller: network),
+          Expanded(child: _buildGallery()),
+        ],
+      ),
     );
   }
 
@@ -370,9 +383,16 @@ class _LocalGalleryScreenState extends State<LocalGalleryScreen> {
       );
     }
 
+    final VoidCallback? onBack = widget.onBack;
     return AppBar(
       title: const Text('Local Photos'),
-      leading: AvatarButton(onPressed: _openSettings),
+      leading: onBack != null
+          ? IconButton(
+              tooltip: 'Back to Photos',
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back),
+            )
+          : AvatarButton(onPressed: _openSettings),
       actions: <Widget>[
         IconButton(
           tooltip: 'Search local photos',
@@ -598,6 +618,54 @@ class _LocalGalleryScreenState extends State<LocalGalleryScreen> {
                   label: const Text('Upload Selected'),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NasOfflineNotice extends StatelessWidget {
+  const _NasOfflineNotice({required this.controller});
+
+  final NetworkStatusController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool checking = controller?.isChecking ?? false;
+
+    return Material(
+      color: scheme.primaryContainer.withValues(alpha: 0.55),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 7, 8, 7),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 17,
+              color: scheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'NAS offline — local photos stay available; uploads resume '
+                'when the tailnet reconnects.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: checking ? null : controller?.checkNow,
+              style: TextButton.styleFrom(
+                foregroundColor: scheme.onPrimaryContainer,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: Text(checking ? 'Checking…' : 'Retry'),
             ),
           ],
         ),

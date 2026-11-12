@@ -119,13 +119,32 @@ abstract final class OneDriveTheme {
           primary: isDark
               ? OneDriveColors.primaryDark
               : OneDriveColors.primaryLight,
-          onPrimary: isDark ? const Color(0xFF003354) : Colors.white,
+          onPrimary: isDark ? const Color(0xFF002F4D) : Colors.white,
+          primaryContainer: isDark
+              ? const Color(0xFF0B3A5C)
+              : const Color(0xFFDCEEFF),
+          onPrimaryContainer: isDark
+              ? const Color(0xFFC8E6FF)
+              : const Color(0xFF063A63),
+          secondary: isDark
+              ? const Color(0xFF75D1C4)
+              : const Color(0xFF006A61),
+          onSecondary: isDark ? const Color(0xFF00332E) : Colors.white,
+          tertiary: isDark
+              ? const Color(0xFFFFC66B)
+              : const Color(0xFF7A5900),
           surface: isDark
               ? OneDriveColors.surfaceDark
               : OneDriveColors.surfaceLight,
+          surfaceContainerLow: isDark
+              ? const Color(0xFF242424)
+              : const Color(0xFFFCFCFC),
           surfaceContainer: isDark
               ? OneDriveColors.surfaceContainerDark
               : OneDriveColors.surfaceContainerLight,
+          surfaceContainerHigh: isDark
+              ? const Color(0xFF333333)
+              : const Color(0xFFF7F7F7),
           surfaceContainerHighest: isDark
               ? OneDriveColors.surfaceContainerHighestDark
               : OneDriveColors.surfaceContainerHighestLight,
@@ -139,16 +158,32 @@ abstract final class OneDriveTheme {
               ? OneDriveColors.outlineVariantDark
               : OneDriveColors.outlineVariantLight,
           error: OneDriveColors.error,
+          errorContainer: isDark
+              ? const Color(0xFF5C1A1F)
+              : const Color(0xFFFFE5E7),
+          onErrorContainer: isDark
+              ? const Color(0xFFFFB3B8)
+              : const Color(0xFF6B1118),
+          surfaceTint: Colors.transparent,
         );
 
     final ThemeData base = ThemeData(
       brightness: brightness,
       colorScheme: scheme,
+      useMaterial3: true,
       visualDensity: VisualDensity.standard,
+      splashFactory: InkSparkle.splashFactory,
     );
 
     // File names 16/24, metadata 13 secondary, section titles 20-22.
     final TextTheme textTheme = base.textTheme.copyWith(
+      headlineSmall: TextStyle(
+        fontSize: 24,
+        height: 32 / 24,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.25,
+        color: scheme.onSurface,
+      ),
       titleLarge: TextStyle(
         fontSize: 22,
         height: 28 / 22,
@@ -177,6 +212,17 @@ abstract final class OneDriveTheme {
         color: tokens.secondaryText,
       ),
       labelLarge: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      labelMedium: TextStyle(
+        fontSize: 12,
+        height: 16 / 12,
+        fontWeight: FontWeight.w600,
+        color: tokens.secondaryText,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 11,
+        height: 14 / 11,
+        color: tokens.secondaryText,
+      ),
     );
 
     return base.copyWith(
@@ -190,9 +236,11 @@ abstract final class OneDriveTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        toolbarHeight: 58,
         titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
           color: scheme.onSurface,
         ),
       ),
@@ -201,7 +249,11 @@ abstract final class OneDriveTheme {
         surfaceTintColor: Colors.transparent,
         indicatorColor: tokens.selection,
         elevation: 0,
-        height: 72,
+        shadowColor: Colors.black.withValues(alpha: isDark ? 0.32 : 0.08),
+        height: 70,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith((Set<WidgetState> states) {
           final bool selected = states.contains(WidgetState.selected);
@@ -215,11 +267,30 @@ abstract final class OneDriveTheme {
         ) {
           final bool selected = states.contains(WidgetState.selected);
           return TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 11.5,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             color: selected ? scheme.primary : scheme.onSurfaceVariant,
           );
         }),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: OneDrivePageTransitionsBuilder(),
+          TargetPlatform.iOS: OneDrivePageTransitionsBuilder(),
+          TargetPlatform.linux: OneDrivePageTransitionsBuilder(),
+          TargetPlatform.macOS: OneDrivePageTransitionsBuilder(),
+          TargetPlatform.windows: OneDrivePageTransitionsBuilder(),
+        },
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll<OutlinedBorder>(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          overlayColor: WidgetStatePropertyAll<Color>(
+            scheme.primary.withValues(alpha: 0.08),
+          ),
+        ),
       ),
       cardTheme: CardThemeData(
         color: scheme.surfaceContainer,
@@ -228,7 +299,7 @@ abstract final class OneDriveTheme {
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
@@ -244,7 +315,36 @@ abstract final class OneDriveTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        backgroundColor: isDark
+            ? const Color(0xFFF5F5F5)
+            : const Color(0xFF242424),
+        contentTextStyle: TextStyle(
+          fontSize: 13,
+          height: 18 / 13,
+          color: isDark ? const Color(0xFF242424) : Colors.white,
+        ),
+        actionTextColor: isDark
+            ? OneDriveColors.primaryLight
+            : OneDriveColors.primaryDark,
+        elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFFF5F5F5) : const Color(0xFF242424),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        textStyle: TextStyle(
+          fontSize: 12,
+          color: isDark ? const Color(0xFF242424) : Colors.white,
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: scheme.primary,
@@ -260,7 +360,9 @@ abstract final class OneDriveTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
           textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
@@ -316,6 +418,38 @@ abstract final class OneDriveTheme {
       labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
       hintStyle: TextStyle(color: tokens.secondaryText, fontSize: 14),
       floatingLabelStyle: TextStyle(color: scheme.primary, fontSize: 14),
+    );
+  }
+}
+
+/// A restrained fade-and-lift transition for pushed surfaces (Settings,
+/// Tutorial, image viewer). It keeps navigation feeling connected rather than
+/// dropping a new page on top of the old one.
+class OneDrivePageTransitionsBuilder extends PageTransitionsBuilder {
+  const OneDrivePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final Animation<double> curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.025),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
     );
   }
 }

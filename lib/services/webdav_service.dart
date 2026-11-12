@@ -28,6 +28,7 @@ class WebdavService {
     : _storage = storage ?? const FlutterSecureStorage();
 
   static const String defaultUrl = 'https://your-nas.your-tailnet.ts.net:8443/dav';
+  static const int maxDownloadBytes = 512 * 1024 * 1024;
 
   static const String _urlKey = 'nas_photo_manager.webdav.url';
   static const String _usernameKey = 'nas_photo_manager.webdav.username';
@@ -179,8 +180,14 @@ class WebdavService {
   Future<io.File> downloadFile(
     String remotePath,
     String localPath, {
+    int? expectedSize,
     void Function(int received, int total)? onProgress,
   }) async {
+    if (expectedSize != null && expectedSize > maxDownloadBytes) {
+      throw const WebdavException(
+        'The remote file is too large to download safely.',
+      );
+    }
     final client = await _ensureClient();
     final destination = io.File(localPath);
     await destination.parent.create(recursive: true);
@@ -234,20 +241,83 @@ class WebdavService {
     if (value.isEmpty) {
       throw const WebdavException('WebDAV URL is required.');
     }
-    if (!value.startsWith('http://') && !value.startsWith('https://')) {
+    if (!value.contains('://')) {
       value = 'https://$value';
     }
     final uri = Uri.tryParse(value);
     if (uri == null || uri.host.isEmpty) {
       throw const WebdavException('Enter a valid WebDAV URL.');
     }
+    if (uri.scheme != 'https') {
+      throw const WebdavException(
+        'WebDAV URL must use HTTPS so credentials are never sent in clear text.',
+      );
+    }
+    if (uri.userInfo.isNotEmpty) {
+      throw const WebdavException(
+        'Do not put credentials in the WebDAV URL; use the fields below.',
+      );
+    }
+    if (uri.hasQuery || uri.hasFragment) {
+      throw const WebdavException('WebDAV URL must not contain a query or fragment.');
+    }
+    // Uri.normalize() resolves dot segments in uri.path, so inspect the raw
+    // path from the original input as well. The value below is what gets
+    // stored and later handed to the HTTP client.
+    final int authorityStart = value.indexOf('://') + 3;
+    final int pathStart = value.indexOf('/', authorityStart);
+    final String rawPath = pathStart < 0 ? '' : value.substring(pathStart);
+    final String decodedPath;
+    try {
+      decodedPath = Uri.decodeComponent(rawPath);
+    } on FormatException {
+      throw const WebdavException('Enter a valid WebDAV URL.');
+    } on ArgumentError {
+      throw const WebdavException('Enter a valid WebDAV URL.');
+    }
+    if (_hasUnsafePathSegments(decodedPath)) {
+      throw const WebdavException('WebDAV URL contains an invalid path.');
+    }
     return value.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Reject paths that could escape the configured WebDAV root. Repeated
+  /// decoding catches double-encoded `..` segments before a server sees them.
+  static bool isSafeRemotePath(String input) {
+    return !_hasUnsafePathSegments(input.trim());
+  }
+
+  static bool _hasUnsafePathSegments(String input) {
+    var value = input;
+    for (var i = 0; i < 3; i++) {
+      if (value.contains('\u0000') || value.contains('\\')) return true;
+      if (value.split('/').any((segment) => segment == '.' || segment == '..')) {
+        return true;
+      }
+      try {
+        final String decoded = Uri.decodeComponent(value);
+        if (decoded == value) break;
+        value = decoded;
+      } on FormatException {
+        // A literal percent sign is legal in a path. Stop decoding here and
+        // inspect what has already been decoded rather than rejecting it.
+        break;
+      } on ArgumentError {
+        // This Dart SDK reports a truncated percent escape as ArgumentError.
+        break;
+      }
+    }
+    if (value.contains('\u0000') || value.contains('\\')) return true;
+    return value.split('/').any((segment) => segment == '.' || segment == '..');
   }
 
   static String _normalizeRemotePath(String input) {
     final value = input.trim();
     if (value.isEmpty || value == '/') {
       return '/';
+    }
+    if (!isSafeRemotePath(value)) {
+      throw const WebdavException('Invalid remote path.');
     }
     return value.startsWith('/') ? value : '/$value';
   }

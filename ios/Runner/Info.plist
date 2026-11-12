@@ -74,12 +74,5 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>NAS Photo Manager connects to your NAS over your local network and private tailnet.</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>
 </dict>
 </plist>

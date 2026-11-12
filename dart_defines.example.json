@@ -1,0 +1,6 @@
+{
+  "APP_ROLE": "user",
+  "APP_USER": "Member",
+  "PHOTOS_URL": "https://your-nas.your-tailnet.ts.net:8082/",
+  "AI_URL": "https://your-nas.your-tailnet.ts.net:3000/"
+}

@@ -9,7 +9,6 @@ import 'package:webdav_client/webdav_client.dart' as webdav;
 import '../services/webdav_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import 'local_gallery_screen.dart';
 import 'settings_screen.dart';
 
 enum _GalleryViewMode { grid, list }
@@ -80,8 +79,14 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
 
       await widget.webdavService.connect();
       final files = await widget.webdavService.listFiles('/');
-      final images =
-          files.where((file) => file.isDir != true && _isImage(file)).toList()
+      final images = files
+          .where((file) {
+            final path = file.path ?? '/${file.name ?? ''}';
+            return file.isDir != true &&
+                _isImage(file) &&
+                WebdavService.isSafeRemotePath(path);
+          })
+          .toList()
             ..sort((a, b) {
               final aTime = a.mTime ?? DateTime.fromMillisecondsSinceEpoch(0);
               final bTime = b.mTime ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -149,7 +154,11 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
         ),
       );
 
-      await widget.webdavService.downloadFile(remotePath, localFile.path);
+      await widget.webdavService.downloadFile(
+        remotePath,
+        localFile.path,
+        expectedSize: file.size,
+      );
 
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
@@ -181,7 +190,11 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
       final target =
           '${folder.path}/${DateTime.now().microsecondsSinceEpoch}_${_safeFileName(displayName)}';
 
-      await widget.webdavService.downloadFile(remotePath, target);
+      await widget.webdavService.downloadFile(
+        remotePath,
+        target,
+        expectedSize: file.size,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -234,17 +247,14 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
   }
 
   void _openLocalGallery() {
-    final onOpenLocalPhotos = widget.onOpenLocalPhotos;
+    final VoidCallback? onOpenLocalPhotos = widget.onOpenLocalPhotos;
     if (onOpenLocalPhotos != null) {
       onOpenLocalPhotos();
       return;
     }
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => LocalGalleryScreen(
-          webdavService: widget.webdavService,
-          themeController: widget.themeController,
-        ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Open the Photos module from the navigation bar.'),
       ),
     );
   }
@@ -331,7 +341,23 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
 
   Widget _buildBody() {
     if (_loading && _images.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Loading photos…',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      );
     }
     if (_needsSetup) {
       return EmptyState(
@@ -397,8 +423,9 @@ class RemoteGalleryScreenState extends State<RemoteGalleryScreen> {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 104),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+        childAspectRatio: 1,
       ),
       itemCount: images.length,
       itemBuilder: (context, index) {
@@ -599,7 +626,7 @@ class _RemoteGridTile extends StatelessWidget {
                 right: 0,
                 bottom: 0,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(6, 14, 6, 5),
+                  padding: const EdgeInsets.fromLTRB(7, 16, 7, 6),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
@@ -611,7 +638,12 @@ class _RemoteGridTile extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      height: 14 / 11,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
