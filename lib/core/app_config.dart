@@ -2,7 +2,7 @@ abstract final class AppConfig {
   /// The private tailnet host used by the NAS services. These values are safe
   /// placeholders, not secrets; override them at build time as the services
   /// move. Keep the mobile client on the tailnet rather than exposing ports.
-  /// The T410 is reached by its MagicDNS hostname rather than its tailnet IP,
+  /// The <nas-host> is reached by its MagicDNS hostname rather than its tailnet IP,
   /// because the Tailscale TLS certificate is issued for the hostname only.
   /// Never hardcode the raw tailnet address here: it leaks host identity into
   /// source and fails certificate validation.
