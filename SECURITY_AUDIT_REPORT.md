@@ -1,9 +1,9 @@
 # Fortress Photo Manager — Security Audit & APK Report
 
 **Date:** 2026-11-09  
-**Target:** Tualatin T410, `t410`  
+**Target:** the Fortress NAS, `<nas-host>`  
 **Build:** Flutter debug APK  
-**Private routes:** local `10.0.0.10`, Tailscale `100.64.0.10`  
+**Private routes:** local `<nas-lan-ip>`, Tailscale `<tailnet-ip>`  
 **Canonical HTTPS host:** `your-nas.your-tailnet.ts.net`
 
 ## Executive summary
@@ -37,7 +37,7 @@ The APK is a debug artifact. It is not release-signed and was not installed on a
 - `photosUrl = https://your-nas.your-tailnet.ts.net:8082/` (reserved for the future authenticated gallery/API integration)
 - `webViewTimeout = 18 seconds`
 
-The raw `http://100.64.0.10:...` URLs from the deployment brief were deliberately not baked into the client:
+The raw `http://<tailnet-ip>:...` URLs from the deployment brief were deliberately not baked into the client:
 
 - the client enforces HTTPS, and cleartext traffic was not enabled;
 - the Tailscale certificate is issued for the MagicDNS hostname, not the raw IP;
@@ -87,7 +87,7 @@ A clean build and tests reduce risk, but no automated test can prove every nativ
 
 ## Photos backend limitation
 
-The T410 Photos service is **not** the gallery UI:
+The `<nas-host>` Photos service is **not** the gallery UI:
 
 - `/health` → `200` with service/SQLite/sharp metadata;
 - `/api/photos/stats` → `{"assets":0,"faces":0,"people":0,"jobs":0}`;
@@ -167,7 +167,7 @@ the deployed host. It records only new, evidenced findings.
 
 ### A-01 — Real tailnet address embedded in source (LOW) — FIXED
 
-`lib/core/app_config.dart` carried the T410's tailnet IPv4 address in a doc comment. Comments
+`lib/core/app_config.dart` carried the `<nas-host>` tailnet IPv4 address in a doc comment. Comments
 ship in the repository and disclose internal topology even when the value is not executable.
 
 Fixed by rewriting the comment to explain the *reason* (certificate is hostname-scoped) without
@@ -204,7 +204,7 @@ correct and `allow-top-navigation` / `allow-popups` were never present.
   because `RouteGuard` wraps `ModuleView`; the Flutter shell builds its module stack only from
   the role-filtered list and re-checks `RouteGuard.canAccess` in `_selectModule`.
 
-## Findings open — require root on the T410
+## Findings open — require root on the `<nas-host>`
 
 Recorded here because they were confirmed by live probe but cannot be remediated without host
 access. Full detail in `state/LIVE_STATE.md`.
