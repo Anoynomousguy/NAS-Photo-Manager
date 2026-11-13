@@ -95,3 +95,7 @@ issue containing hostnames, addresses or credentials.
   operational archive for the Fortress NAS (not publicly viewable).
 - [RMC-Secure-NAS-Node](https://github.com/Anoynomousguy/RMC-Secure-NAS-Node) —
   earlier single-node stack, kept for reference.
+
+## Documentation
+
+- [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) — connecting the client to any WebDAV server.
